@@ -1,0 +1,7 @@
+RAIT
+[submodule "hi_robotics"]
+	path = hi_robotics
+	url = https://github.com/Techolution/hi_robotics
+[submodule "RAIT"]
+	path = RAIT
+	url = https://github.com/TecholutionSRD/RAIT

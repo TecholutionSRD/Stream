@@ -1,0 +1,43 @@
+Stream:
+  Websocket_server: "ws://anubhav.ddns.net:9000"
+  Websocket_topic: "/home/server"
+
+Video_Recorder:
+  num_samples: 1
+  processor_fps: 5.0
+  data_path: "data/recordings/"
+  video_format: "mp4"
+  video_fps: 30.0
+  video_duration: 10
+  width: 640
+  height: 480
+
+Gemini:
+  model_name: 'gemini-1.5-flash-002'
+  recording_dir: 'data/captured__frames'
+  
+Camera:
+  D435I:
+    India:
+      Transformations:
+        X:
+          - [0.068, -0.986, 0.152, -0.108]
+          - [0.998, 0.065, -0.023, 0.0]
+          - [0.013, 0.153, 0.988, -0.044]
+          - [0.0, 0.0, 0.0, 1.0]
+        Y:
+          - [-0.47, 0.587, -0.659, 0.73929]
+          - [0.877, 0.392, -0.276, -0.16997]
+          - [0.096, -0.708, -0.7, 0.86356]
+          - [0.0, 0.0, 0.0, 1.0]
+      
+      Intrinsics:
+        Color_Intrinsics:
+          width: 640
+          height: 480
+          ppx: 329.1317443847656
+          ppy: 240.29669189453125
+          fx: 611.084594726562
+          fy: 609.7639770507812
+          distortion_model: "rs.distortion.brown_conrady"
+          coeff: [0.0, 0.0, 0.0, 0.0, 0.0]
