@@ -1,11 +1,10 @@
-RAIT
 [submodule "hi_robotics"]
 	path = hi_robotics
 	url = https://github.com/Techolution/hi_robotics
 [submodule "RAIT"]
 	path = RAIT
 	url = https://github.com/TecholutionSRD/RAIT
-[submodule "realtime-webrtc"]
-	path = realtime-webrtc
-	url = https://github.com/gbaeke/realtime-webrtc
+[submodule "Realtime-WebRTC"]
+	path = Realtime-WebRTC
+	url = https://github.com/TecholutionSRD/Realtime-WebRTC
 
