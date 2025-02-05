@@ -3,14 +3,14 @@ Stream:
   Websocket_topic: "/home/server"
 
 Video_Recorder:
-  num_samples: 1
-  processor_fps: 5.0
-  data_path: "data/recordings/"
-  video_format: "mp4"
-  video_fps: 30.0
-  video_duration: 10
-  width: 640
-  height: 480
+  num_samples: 1            # Number of video samples to record
+  data_path: "data/recordings/"  # Where to save the recordings
+  video_format: "mp4"      # Output video format
+  video_fps: 5.0            # Video framerate
+  video_duration: 10       # Duration in seconds
+  width: 640              # Frame width
+  height: 480             # Frame height
+  save_all_frames: true   # New parameter to explicitly indicate saving all frames
 
 Gemini:
   model_name: 'gemini-1.5-flash-002'

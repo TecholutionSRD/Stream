@@ -17,12 +17,14 @@ import sys
 from PIL import Image
 from dotenv import load_dotenv
 
+
 load_dotenv()
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 from config.config import load_config
 from RAIT.cameras.recevier import CameraReceiver
+from utils.utils_main import deproject_pixel_to_point, transform_coordinates
 
 class Gemini_Inference:
     """
@@ -50,6 +52,15 @@ class Gemini_Inference:
             "Return bounding boxes for objects in the format:\n"
             "```json\n{'<object_name>': [xmin, ymin, xmax, ymax]}\n```\n"
             "Include multiple instances of objects as '<object_name>_1', '<object_name>_2', etc."
+        )
+        self.detection_prompt = (
+            "You are a world-class computer vision expert. Analyze this image carefully and detect "
+            "all objects with detailed, specific descriptions. For example, use 'red soda can' instead of just 'can'. "
+            "Include color, brand names, or distinctive features when possible. "
+            "Return bounding boxes in the following JSON format:\n"
+            "{'<detailed_object_name>': [xmin, ymin, xmax, ymax]}\n"
+            "For multiple instances of similar objects, append numbers like '<detailed_object_name>_1', '<detailed_object_name>_2'.\n"
+            "Focus on accuracy and detail in object descriptions."
         )
         self.capture_state = False
     
@@ -189,10 +200,8 @@ class Gemini_Inference:
         print(f"Boxes: {boxes}")
 
         for target_class, box in boxes.items():
-            # Get bounding box and confidence score
             confidence = 100
-            
-            # Calculate center coordinates
+        
             center_x = int((box[0] + box[2]) / 2)
             center_y = int((box[1] + box[3]) / 2)
             
@@ -202,65 +211,90 @@ class Gemini_Inference:
         self.detection_results = centers
         return centers
 
-    # def visualize_detections(self, 
-    #                        image: Image.Image, 
-    #                        boxes: Dict, 
-    #                        output_dir: str,
-    #                        filename: str = 'detection_visualization.jpg') -> Tuple[int, int]:
-    #     """
-    #     Visualize detected objects with bounding boxes and save the result.
+    async def detect(self, camera, target_class: List[str] = ['red soda can']):
+        """
+        Processes the captured images to detect an object and calculate its real-world coordinates.
         
-    #     Args:
-    #         image_path (str): Path to the original image
-    #         boxes (Dict): Dictionary of detected objects and their bounding boxes
-    #         output_dir (str): Directory to save the visualization
-    #         filename (str): Name of the output file
+        :param camera: Camera instance
+        :param target_class: List of target objects to detect
+        :return: Transformed real-world coordinates of the detected object
+        """
+        recording_dir = self.config.get("recording_dir")
+        save_path = f"{recording_dir}/{int(time.time())}"
+        frames = await camera.capture_frames(save_path)  # Add await here
+        color_frame_path = frames.get('rgb')
+        depth_frame_path = frames.get('depth')
+        intrinsics = camera._get_intrinsics(location='India', camera_name='D435I')
+        
+        self.set_target_classes(target_class)
+        color_image = Image.open(color_frame_path)
+        print("Gemini Inference: Processing frame...")
+        output = self.get_object_center(color_image, target_class[0])
+        pixel_center = output.get('center')
+        if not pixel_center:
+            print("No object detected.")
+            return None
             
-    #     Returns:
-    #         Tuple[int, int]: Image dimensions (width, height)
-    #     """
-    #     im = image # Image.open(image_path)
-    #     self._plot_bounding_boxes(im, list(boxes.items()))
-        
-    #     os.makedirs(output_dir, exist_ok=True)
-    #     output_path = os.path.join(output_dir, filename)
-    #     im.save(output_path)
-        
-    #     return im.width, im.height
-    # @staticmethod
-    # def _plot_bounding_boxes(image: Image.Image, 
-    #                        noun_phrases_and_positions: List[Tuple]) -> None:
-    #     """Plot bounding boxes on the image."""
-    #     plot_bounding_boxes(image, noun_phrases_and_positions)
+        depth_image = np.load(depth_frame_path)
+        depth_center = deproject_pixel_to_point(pixel_center, depth_image, intrinsics=intrinsics)
+        transformed_center = transform_coordinates(*depth_center)
+        return transformed_center
 
-    # def get_real_boxes(self):
-    #     if self.boxes is None:
-    #         return None
-    #     return {i: normalize_box(j) for i, j in self.boxes.items()}
+    def detect_objects(self, rgb_frame: Image.Image) -> List[str]:
+        """
+        Run detection on a single RGB frame and return detected object names.
+        
+        Args:
+            rgb_frame (Image.Image): RGB frame as PIL Image
+            
+        Returns:
+            List[str]: List of detected object names
+        """
+        # Use detection_prompt instead of default_prompt
+        prompt = self.detection_prompt
+        if self.target_classes:
+            prompt += "\nDetect the following classes: " + ", ".join(self.target_classes)
+            
+        response = self.model.generate_content([rgb_frame, prompt])
+        try:
+            results = json.loads(json_repair.repair_json(response.text))
+        except ValueError as e:
+            print(f"Error parsing detection results: {e}")
+            return []
+
+        with self.lock:
+            self.process_results = results
+            
+        if not results:
+            return []
+        
+        object_names = []
+        for key in results.keys():
+            base_name = key.rsplit('_', 1)[0]  
+            if base_name not in object_names:
+                object_names.append(base_name)
+                
+        return object_names
 
 
 if __name__ == "__main__":
     async def main():
         config = load_config("config/config.yaml")
-        camera_config = config.get("Stream", {})
         gemini_config = config.get("Gemini", {})
-        camera = CameraReceiver(camera_config)
-        gemini = Gemini_Inference(gemini_config)
-        target_class = ['red soda can']
-        gemini.set_target_classes(target_class)
+        camera = CameraReceiver(config)
+        gemini = Gemini_Inference(config)
         recording_dir = gemini_config.get("recording_dir")
         save_path = f"{recording_dir}/{int(time.time())}"
         print(save_path)
+        
         frames = await camera.capture_frames(save_path)
         color_frame_path = frames.get('rgb')
-        depth_frame_path = frames.get('depth')
-        if color_frame_path and depth_frame_path:
+        
+        if color_frame_path:
             color_image = Image.open(color_frame_path)
-            output = gemini.get_object_center(color_image, target_class[0])
-            pixel_center = output.get('center')
-            print(f"Pixel Center: {pixel_center}")
+            detected_objects = gemini.detect_objects(color_image)
+            print(f"Detected objects: {detected_objects}")
         else:
             print("No frames received or saved.")
 
-        
     asyncio.run(main())
