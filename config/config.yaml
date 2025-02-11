@@ -4,7 +4,7 @@ Stream:
 
 Video_Recorder:
   num_samples: 1            # Number of video samples to record
-  data_path: "data/recordings/"  # Where to save the recordings
+  data_path: "../data/recordings/"  # Where to save the recordings
   video_format: "mp4"      # Output video format
   video_fps: 5.0            # Video framerate
   video_duration: 10       # Duration in seconds
