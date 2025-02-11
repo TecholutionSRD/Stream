@@ -1,5 +1,5 @@
 Stream:
-  Websocket_server: "ws://anubhav.ddns.net:9000"
+  Websocket_server: "ws://anubhav.ddns.net:3000"
   Websocket_topic: "/home/server"
 
 Video_Recorder:
@@ -41,3 +41,8 @@ Camera:
           fy: 609.7639770507812
           distortion_model: "rs.distortion.brown_conrady"
           coeff: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+DataBase:
+  base_dir: "../RAIT/knowledge_base/"
+  grasp: "grasps.csv"
+  action: "actions.csv"
