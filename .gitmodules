@@ -7,4 +7,6 @@
 [submodule "Realtime-WebRTC"]
 	path = Realtime-WebRTC
 	url = https://github.com/TecholutionSRD/Realtime-WebRTC
-
+[submodule "dsr_control_api"]
+	path = dsr_control_api
+	url = git@github.com:Techolution/dsr_control_api.git
